@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f8f7ff"><meta name="description" content="Bloom AI voice assistant workspace">
+<title>Bloom AI — Workspace</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="app-page">
+<div class="app-layout">
+<aside class="sidebar">
+<a class="brand-lockup" href="{{ url_for('workspace') }}"><span class="bloom-mark">✿</span><span>Bloom <b>AI</b></span></a>
+<div class="side-label">WORKSPACE</div>
+<nav class="side-nav">
+<button class="side-link active" data-view="homeView"><span>⌂</span> Home</button>
+<button class="side-link" data-view="voiceView"><span>🎙</span> Voice</button>
+<button class="side-link" data-view="documentsView"><span>▤</span> Documents</button>
+<button class="side-link" data-view="aiView"><span>✧</span> AI Assistant</button>
+<button class="side-link" data-view="settingsView"><span>⚙</span> Settings</button>
+</nav>
+<div class="sidebar-spacer"></div>
+<div class="sidebar-tip"><span>✦</span><b>Have an idea?</b><p>Just speak it. Bloom helps you shape it.</p><button data-view="voiceView">Start creating →</button></div>
+<div class="sidebar-user"><div class="avatar">{{ user.name[:1]|upper }}</div><div class="user-lines"><b>{{ user.name }}</b><small>{{ user.email }}</small></div><form method="post" action="{{ url_for('logout') }}"><button class="logout-icon" aria-label="Sign out" title="Sign out">↗</button></form></div>
+</aside>
+<main class="app-main">
+<header class="app-topbar"><button class="mobile-menu" id="mobileMenu" aria-label="Toggle navigation">☰</button><a class="mobile-brand" href="{{ url_for('workspace') }}"><span class="bloom-mark">✿</span> Bloom <b>AI</b></a><div class="topbar-note"><span class="live-dot"></span> YOUR PERSONAL AI WORKSPACE</div><div class="topbar-right"><span class="ready-label">✦ Ready to create</span><button class="avatar avatar-small" data-view="settingsView">{{ user.name[:1]|upper }}</button></div></header>
+<div class="view-wrap">
+<section class="view active-view" id="homeView">
+<div class="page-heading"><div><div class="eyebrow">YOUR CREATIVE SPACE</div><h1>Good day, {{ user.name.split(' ')[0] }} <span class="wave">✦</span></h1><p>What would you like to create today?</p></div><span class="heading-flower">✿</span></div>
+<button class="assistant-banner" data-view="aiView"><span class="banner-sparkle">✧</span><span><b>Bloom is ready to assist</b><small>Speak, write, or open your workspace.</small></span><span class="banner-arrow">→</span></button>
+<div class="quick-grid">
+<button class="quick-card" data-view="voiceView"><span class="quick-icon quick-purple">🎙</span><span><b>Voice note</b><small>Quick capture</small></span><span class="quick-arrow">↗</span></button>
+<button class="quick-card" id="homeNewDocument"><span class="quick-icon quick-violet">▤</span><span><b>New document</b><small>Start writing</small></span><span class="quick-arrow">↗</span></button>
+<button class="quick-card" data-view="aiView"><span class="quick-icon quick-blue">✧</span><span><b>AI assistant</b><small>Work with text</small></span><span class="quick-arrow">↗</span></button>
+<button class="quick-card" id="uploadHintButton"><span class="quick-icon quick-orange">↑</span><span><b>Upload file</b><small>Coming soon</small></span><span class="quick-arrow">↗</span></button>
+</div>
+<div class="section-title-row"><div><h2>Recent documents</h2><p>Your ideas, right where you left them.</p></div><button class="link-button" data-view="documentsView">See all →</button></div>
+<div id="homeDocumentsList" class="document-list compact-list"></div><div id="homeDocumentsEmpty" class="empty-mini"><span>✿</span><b>Your next great idea starts here.</b><small>Write a note or start speaking.</small></div>
+</section>
+<section class="view" id="voiceView">
+<div class="page-heading"><div><div class="eyebrow">VOICE INPUT</div><h1>Voice workspace<span class="heading-period">.</span></h1><p>Speak your thoughts. Bloom will turn them into clear, editable text.</p></div></div>
+<div class="voice-card">
+<div class="voice-card-head"><div><span class="eyebrow"><span class="live-dot"></span> BLOOM VOICE</span><h2 id="recordingStatus">Ready when you are</h2><p>Tap the microphone and start speaking.</p></div><div class="timer-box"><small>DURATION</small><strong id="recordingTimer">00:00</strong></div></div>
+<div id="waveform" class="visualizer" aria-hidden="true"><div class="visualizer-glow"></div><div class="wave-bars">{% for i in range(21) %}<i></i>{% endfor %}</div></div>
+<button id="micButton" class="mic-button" aria-label="Start or stop voice typing"><span id="micIcon">🎙</span></button><p id="micHint" class="mic-hint">Tap to start speaking</p>
+<label class="language-select"><span>◎ Recognition language</span><select id="languageSelect"><option value="en-IN">English (India)</option><option value="hi-IN">Hindi</option><option value="mr-IN">Marathi</option><option value="en-US">English (United States)</option></select></label>
+</div>
+<div class="editor-card"><div class="editor-head"><div><h2>Your text</h2><p id="wordCount">0 words · 0 characters</p></div><button id="undoButton" class="subtle-button">↶ Undo</button></div><input id="documentTitle" class="title-input" placeholder="Untitled Document" maxlength="120" aria-label="Document title"><textarea id="transcript" placeholder="Your spoken words will appear here...&#10;&#10;You can also type directly and use Bloom's editing tools." spellcheck="true" aria-label="Editable transcription"></textarea><div class="editor-actions"><button id="cleanButton" class="btn btn-soft">✧ Clean text</button><button id="copyButton" class="btn btn-soft">▢ Copy</button><button id="saveButton" class="btn btn-primary">＋ Save document</button></div><div class="command-area"><div class="command-title"><span class="feature-icon purple">✧</span><div><b>Ask Bloom</b><small>Use a simple command to transform your text.</small></div><span class="ai-tag">AI</span></div><div class="command-row"><input id="commandInput" placeholder="e.g. Make this more professional..." aria-label="Editing command"><button id="runCommandButton" class="btn btn-primary">Run ↗</button></div><div class="chip-row"><button class="command-chip" data-command="clean text">✧ Clean up</button><button class="command-chip" data-command="capitalize">Aa Capitalize</button><button class="command-chip" data-command="new paragraph">↵ New paragraph</button><button class="command-chip" data-command="uppercase">AA Uppercase</button></div><p class="helper-note">Basic commands work locally. Advanced AI writing needs a connected model.</p></div></div>
+</section>
+<section class="view" id="documentsView">
+<div class="page-heading"><div><div class="eyebrow">YOUR PERSONAL LIBRARY</div><h1>My documents<span class="heading-period">.</span></h1><p>Every thought, note, and idea in one place.</p></div><button class="btn btn-primary" id="newDocumentButton">＋ New document</button></div>
+<div class="document-tools"><label class="search-box"><span>⌕</span><input id="documentSearchInput" placeholder="Search your documents..." type="search"></label><span id="documentCountBadge" class="count-badge">0 items</span></div>
+<div id="documentsList" class="document-list"></div><div id="emptyDocuments" class="empty-state"><span class="empty-art">▤</span><h2>Your library is waiting</h2><p>Save your first note or dictate an idea. Your documents will appear here.</p><button id="startWritingButton" class="btn btn-primary">Create your first document →</button></div>
+</section>
+<section class="view" id="aiView">
+<div class="page-heading"><div><div class="eyebrow">YOUR CREATIVE PARTNER</div><h1>AI Assistant<span class="heading-period">.</span></h1><p>Choose an action for your text or write a command.</p></div></div>
+<div class="ai-welcome"><span class="ai-orb">✧</span><h2>How can I help you today?</h2><p>Use a quick action to work with the text in your voice workspace.</p></div>
+<div class="ai-action-grid"><button class="ai-action" data-ai-command="Improve this text"><span>✧</span><b>Improve this text</b><small>Make it clearer and smoother</small></button><button class="ai-action" data-ai-command="Summarize these notes"><span>▤</span><b>Summarize notes</b><small>Find the main points</small></button><button class="ai-action" data-ai-command="Make this more professional"><span>↗</span><b>Professional tone</b><small>Polish your writing</small></button><button class="ai-action" data-ai-command="Translate to Hindi"><span>文</span><b>Translate to Hindi</b><small>Prepare a Hindi version</small></button><button class="ai-action" data-ai-command="Create a to-do list"><span>☑</span><b>Create a to-do list</b><small>Turn ideas into tasks</small></button><button class="ai-action" data-ai-command="Clean text"><span>✎</span><b>Clean text</b><small>Fix spacing and formatting</small></button></div>
+<div class="ai-prompt-card"><label for="aiPrompt">Ask Bloom anything</label><div class="command-row"><input id="aiPrompt" placeholder="Write a command for your text..."><button id="sendAiPrompt" class="btn btn-primary" type="button">Send ↗</button></div><p class="helper-note">Advanced AI responses are not active until you connect a model/API.</p></div>
+</section>
+<section class="view" id="settingsView">
+<div class="page-heading"><div><div class="eyebrow">MAKE BLOOM YOURS</div><h1>Settings<span class="heading-period">.</span></h1><p>Your workspace, your preferences.</p></div></div>
+<div class="profile-card"><div class="avatar avatar-large">{{ user.name[:1]|upper }}</div><div><h2>{{ user.name }}</h2><p>{{ user.email }}</p><span class="profile-status"><span class="live-dot"></span> Bloom account</span></div></div>
+<div class="settings-card"><div class="settings-heading"><span class="settings-icon">◎</span><div><h2>Preferences</h2><p>Set up your voice experience.</p></div></div><label class="setting-row"><span><b>Recognition language</b><small>Default language for voice typing</small></span><select id="settingsLanguageSelect"><option value="en-IN">English (India)</option><option value="hi-IN">Hindi</option><option value="mr-IN">Marathi</option><option value="en-US">English (US)</option></select></label><div class="setting-row"><span><b>Voice engine</b><small>Speech recognition provided by your browser</small></span><span class="setting-badge">Browser default</span></div><div class="setting-row"><span><b>Appearance</b><small>Bloom's light theme</small></span><span class="setting-badge">Light</span></div></div>
+<div class="settings-card"><div class="settings-heading"><span class="settings-icon">▤</span><div><h2>Data and privacy</h2><p>Manage your saved content.</p></div></div><div class="setting-row"><span><b>Document storage</b><small>Saved to your Bloom account database</small></span><span class="setting-badge">Enabled</span></div><button id="clearDocumentsButton" class="danger-button">⌫ Delete all my documents</button><div class="setting-row"><span><b>Privacy Policy</b><small>How Bloom handles your information</small></span><a href="{{ url_for('privacy') }}">View →</a></div><div class="setting-row"><span><b>Terms of Use</b><small>Guidelines for using Bloom</small></span><a href="{{ url_for('terms') }}">View →</a></div></div>
+<div class="about-card"><span class="bloom-mark">✿</span><h2>Bloom AI</h2><p>Your voice. Your workflow.</p><span class="about-version">BETA · v1.0</span></div>
+<form method="post" action="{{ url_for('logout') }}" class="mobile-logout"><button class="danger-button">↗ Sign out</button></form>
+</section>
+</div>
+<nav class="bottom-nav" aria-label="Main navigation"><button class="nav-item active" data-view="homeView"><span>⌂</span><small>Home</small></button><button class="nav-item" data-view="voiceView"><span>🎙</span><small>Voice</small></button><button class="nav-item" data-view="documentsView"><span>▤</span><small>Documents</small></button><button class="nav-item" data-view="aiView"><span>✧</span><small>AI</small></button><button class="nav-item" data-view="settingsView"><span>☰</span><small>More</small></button></nav>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body></html>
