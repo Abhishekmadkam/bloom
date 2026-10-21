@@ -75,6 +75,37 @@
       .replace(/([,.!?])(?=[A-Za-z])/g, "$1 ")
       .replace(/\n{3,}/g, "\n\n").trim();
   }
+  function applyVoicePhrase(rawPhrase) {
+    const phrase = String(rawPhrase || "").trim();
+    if (!phrase) return "";
+    const lower = phrase.toLowerCase().replace(/[.!?]+$/, "").trim();
+    // Spoken editing commands are intercepted instead of being inserted as dictation.
+    if (/^(undo that|undo last|go back)$/.test(lower)) { undo(); return ""; }
+    if (/^(cancel that|scratch that|delete that|remove that|take that out)$/.test(lower)) {
+      pushUndo();
+      transcript.value = transcript.value.replace(/\s*[^.!?\n]+[.!?]?\s*$/, " ").trimEnd();
+      updateCount(); saveDraftSoon(); toast("Last phrase removed."); return "";
+    }
+    if (/^(new paragraph|start a new paragraph)$/.test(lower)) { pushUndo(); transcript.value = transcript.value.trimEnd() + "\n\n"; updateCount(); saveDraftSoon(); return ""; }
+    if (/^(new line|next line)$/.test(lower)) { pushUndo(); transcript.value = transcript.value.trimEnd() + "\n"; updateCount(); saveDraftSoon(); return ""; }
+    if (/^(delete last sentence|remove last sentence)$/.test(lower)) { pushUndo(); transcript.value = transcript.value.replace(/(?:^|\s)[^.!?]*[.!?]?\s*$/, " ").trimEnd(); updateCount(); saveDraftSoon(); toast("Last sentence removed."); return ""; }
+    if (/^(period|full stop)$/.test(lower)) return ". ";
+    if (/^(comma)$/.test(lower)) return ", ";
+    if (/^(question mark)$/.test(lower)) return "? ";
+    if (/^(exclamation mark|exclamation point)$/.test(lower)) return "! ";
+    const change = phrase.match(/^change\s+(.+?)\s+to\s+(.+)$/i);
+    if (change) {
+      const oldText = change[1].trim(), newText = change[2].trim();
+      if (!oldText || !newText) { toast("Say: change old words to new words."); return ""; }
+      const escaped = oldText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(escaped, "ig");
+      if (!regex.test(transcript.value)) { toast(`Couldn't find “${oldText}”.`); return ""; }
+      pushUndo(); transcript.value = transcript.value.replace(regex, newText); updateCount(); saveDraftSoon(); toast(`Changed “${oldText}” to “${newText}”.`); return "";
+    }
+    if (/^(stop listening|stop dictation)$/.test(lower)) { recognition?.stop(); return ""; }
+    return phrase;
+  }
+
   function runCommand(command) {
     const cmd = command.toLowerCase().trim();
     if (!cmd) { toast("Enter a command first."); return; }
@@ -158,10 +189,24 @@
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const phrase = event.results[i][0].transcript;
-        if (event.results[i].isFinal) finalText += phrase + " ";
-        else interim += phrase;
+        if (event.results[i].isFinal) {
+          const before = transcript.value;
+          const result = applyVoicePhrase(phrase);
+          if (result) {
+            if (!undoStack.length || undoStack[undoStack.length - 1] !== before) pushUndo();
+            const needsSpace = transcript.value && !/[\s\n]$/.test(transcript.value);
+            transcript.value += (needsSpace ? " " : "") + result;
+          }
+          finalText = transcript.value;
+        } else interim += phrase;
       }
-      transcript.value = (finalText + interim).trimStart();
+      // Interim words are previewed but are not committed until the browser finalizes them.
+      if (interim) {
+        const base = transcript.value;
+        transcript.dataset.interimBase = base;
+        const needsSpace = base && !/[\s\n]$/.test(base);
+        transcript.value = base + (needsSpace ? " " : "") + interim;
+      }
       updateCount(); saveDraftSoon();
     };
     rec.onerror = event => {
@@ -193,6 +238,44 @@
     if ($("languageSelect")) $("languageSelect").value = $("settingsLanguageSelect").value;
     try { localStorage.setItem("bloom-language", $("settingsLanguageSelect").value); } catch {}
     toast("Language preference updated.");
+  });
+
+  // Text-to-speech uses voices installed by the browser/operating system.
+  const ttsLanguage = $("ttsLanguage"), ttsVoice = $("ttsVoice");
+  function refreshTtsVoices() {
+    if (!window.speechSynthesis || !ttsVoice) return;
+    const selected = ttsVoice.value;
+    const voices = window.speechSynthesis.getVoices();
+    ttsVoice.innerHTML = '<option value="">System default</option>' + voices.map((v, i) => `<option value="${i}">${escapeHtml(v.name)} (${escapeHtml(v.lang)})</option>`).join("");
+    if (selected) ttsVoice.value = selected;
+  }
+  if (window.speechSynthesis) {
+    refreshTtsVoices(); window.speechSynthesis.onvoiceschanged = refreshTtsVoices;
+  }
+  $("speakButton")?.addEventListener("click", () => {
+    const text = transcript?.value?.trim();
+    if (!text) return toast("Write or dictate some text first.");
+    if (!window.speechSynthesis) return toast("Text-to-speech is not supported in this browser.");
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = ttsLanguage?.value || "en-IN";
+    utterance.rate = Number($("ttsRate")?.value || 1);
+    const voices = window.speechSynthesis.getVoices();
+    const voiceIndex = Number(ttsVoice?.value);
+    if (ttsVoice?.value !== "" && voices[voiceIndex]) utterance.voice = voices[voiceIndex];
+    utterance.onerror = () => toast("This voice could not read the text. Try another installed voice.");
+    window.speechSynthesis.speak(utterance);
+  });
+  $("pauseSpeakButton")?.addEventListener("click", () => {
+    if (!window.speechSynthesis) return;
+    if (window.speechSynthesis.paused) window.speechSynthesis.resume(); else window.speechSynthesis.pause();
+  });
+  $("stopSpeakButton")?.addEventListener("click", () => window.speechSynthesis?.cancel());
+  ttsLanguage?.addEventListener("change", () => {
+    if (!ttsVoice) return;
+    const voices = window.speechSynthesis?.getVoices() || [];
+    const match = voices.findIndex(v => v.lang.toLowerCase() === ttsLanguage.value.toLowerCase());
+    ttsVoice.value = match >= 0 ? String(match) : "";
   });
 
   function docIcon(id) { return ["mint", "pink", "violet", "blue", "orange"][id % 5]; }
