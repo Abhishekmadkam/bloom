@@ -1,3 +1,10 @@
 Flask>=3.1,<4.0
 Werkzeug>=3.1
-gunicorn
+gunicorn>=23,<24
+
+vosk>=0.3.45,<1
+sounddevice>=0.4.6,<1
+pyautogui>=0.9.54
+keyboard>=0.13.5
+pyperclip>=1.8.2
+pyttsx3>=2.90
