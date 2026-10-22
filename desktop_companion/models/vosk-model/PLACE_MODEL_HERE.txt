@@ -1,0 +1,1 @@
+Extract a compatible Vosk model into this directory. The model files should be directly inside this folder, or set BLOOM_VOSK_MODEL to the actual extracted model directory.
